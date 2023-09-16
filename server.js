@@ -1,10 +1,12 @@
 const express = require("express");
+const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const dotenv = require("dotenv");
 const redis = require("redis");
 const mongodb = require("mongodb");
 const cors = require("cors");
 const app = express();
+const generateJWTToken = require('./tokenGenerator');
 
 app.use(express.json());
 app.use(cors());
@@ -21,7 +23,7 @@ const redisClient = redis.createClient({
   },
 });
 
-app.post("/auth/login", async (req, res) => {
+app.post("/api/auth/login", async (req, res) => {
   const user = req.body;
   if (!user) return res.sendStatus(400);
   const mongodbClient = await mongoClient.connect(process.env.MONGODB_URI);
@@ -30,13 +32,19 @@ app.post("/auth/login", async (req, res) => {
     const db = await mongodbClient.db("capstone");
     const userExists = await db
       .collection("users")
-      .findOne({ username: user?.username, password: user?.password });
+      .findOne({ username: user?.username });
     if (userExists) {
-      const userData = { username: user.username, email: user.email };
-      const accessToken = generateJWTToken("ACCESS_TOKEN", userData);
-      const refreshToken = generateJWTToken("REFRESH_TOKEN", userData);
-      await redisClient.SADD("refreshTokens", refreshToken);
-      return res.json({ accessToken: accessToken, refreshToken: refreshToken });
+      console.log('userExists', userExists);
+      const passwordMatched = await bcrypt.compare(user.password, userExists.password);
+      if(passwordMatched) {
+        const userData = { username: user.username };
+        const accessToken = generateJWTToken("ACCESS_TOKEN", userData);
+        const refreshToken = generateJWTToken("REFRESH_TOKEN", userData);
+        await redisClient.SADD("refreshTokens", refreshToken);
+        return res.json({ accessToken: accessToken, refreshToken: refreshToken });
+      } else {
+        res.sendStatus(404);
+      }
     } else {
       res.sendStatus(404);
     }
@@ -104,16 +112,3 @@ app.listen(port, () => {
   console.log("listening on port", port);
 });
 
-function generateJWTToken(type, payload) {
-  let token;
-  if (type === "ACCESS_TOKEN") {
-    token = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
-      expiresIn: "1m",
-    });
-  } else if (type === "REFRESH_TOKEN") {
-    token = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET);
-  } else if (type === "PASSWORD_TOKEN") {
-    token = jwt.sign(payload, process.env.PASSWORD_TOKEN_SECRET);
-  }
-  return token;
-}
