@@ -23,6 +23,10 @@ const redisClient = redis.createClient({
   },
 });
 
+app.get('/api/auth', (req, res)=>{
+  res.status(200).send("success");
+})
+
 app.post("/api/auth/login", async (req, res) => {
   const user = req.body;
   if (!user) return res.sendStatus(400);
