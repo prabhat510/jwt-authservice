@@ -110,7 +110,7 @@ app.post("/api/auth/token", async (req, res) => {
   }
 });
 
-app.delete("/auth/logout", async (req, res) => {
+app.delete("/api/auth/logout", async (req, res) => {
   const refreshToken = req.body.token;
 
   try {
