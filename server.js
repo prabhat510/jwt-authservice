@@ -23,8 +23,21 @@ const redisClient = redis.createClient({
   },
 });
 
-app.get('/api/auth', (req, res)=>{
-  res.status(200).send("success");
+app.get('/api/auth/users', async (req, res)=>{
+  const offset = req.query.offset;
+  const limit = req.query.limit;
+  const mongodbClient = await mongoClient.connect(process.env.MONGODB_URI);
+
+  try {
+    const db = await mongodbClient.db("capstone");
+    const count = await db.collection("users").count();
+    const users = await db.collection("users").find().project({_id: 0, password: 0, __v: 0}).sort({_id: 1}).skip(parseInt(offset)).limit(parseInt(limit)).toArray();
+    res.json({users: users, totalCount: count});
+  } catch (error) {
+    console.log(error);
+  } finally {
+    mongodbClient.close();
+  }
 })
 
 app.post("/api/auth/login", async (req, res) => {
@@ -45,7 +58,7 @@ app.post("/api/auth/login", async (req, res) => {
         const accessToken = generateJWTToken("ACCESS_TOKEN", userData);
         const refreshToken = generateJWTToken("REFRESH_TOKEN", userData);
         await redisClient.SADD("refreshTokens", refreshToken);
-        return res.json({ accessToken: accessToken, refreshToken: refreshToken });
+        return res.json({ accessToken: accessToken, refreshToken: refreshToken, isAdmin: userExists.isAdmin });
       } else {
         res.sendStatus(404);
       }
@@ -61,7 +74,7 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
-app.post("/token", async (req, res) => {
+app.post("/api/auth/token", async (req, res) => {
   const refreshToken = req.body.token;
   if (refreshToken === null) {
     return res.sendStatus(401);
