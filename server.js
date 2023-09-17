@@ -58,7 +58,9 @@ app.post("/api/auth/login", async (req, res) => {
         const accessToken = generateJWTToken("ACCESS_TOKEN", userData);
         const refreshToken = generateJWTToken("REFRESH_TOKEN", userData);
         await redisClient.SADD("refreshTokens", refreshToken);
-        return res.json({ accessToken: accessToken, refreshToken: refreshToken, isAdmin: userExists.isAdmin });
+        delete userExists.password;
+        delete userExists._id;
+        return res.json({ accessToken: accessToken, refreshToken: refreshToken, user: userExists });
       } else {
         res.sendStatus(404);
       }
