@@ -6,7 +6,7 @@ const redis = require("redis");
 const mongodb = require("mongodb");
 const cors = require("cors");
 const app = express();
-const generateJWTToken = require('./tokenGenerator');
+const utility = require('./utility');
 
 app.use(express.json());
 app.use(cors());
@@ -23,7 +23,7 @@ const redisClient = redis.createClient({
   },
 });
 
-app.get('/api/auth/users', async (req, res)=>{
+app.get('/api/auth/users', utility.authenticateToken, async (req, res)=>{
   const offset = req.query.offset;
   const limit = req.query.limit;
   const mongodbClient = await mongoClient.connect(process.env.MONGODB_URI);
@@ -55,8 +55,8 @@ app.post("/api/auth/login", async (req, res) => {
       const passwordMatched = await bcrypt.compare(user.password, userExists.password);
       if(passwordMatched) {
         const userData = { username: user.username };
-        const accessToken = generateJWTToken("ACCESS_TOKEN", userData);
-        const refreshToken = generateJWTToken("REFRESH_TOKEN", userData);
+        const accessToken = utility.generateJWTToken("ACCESS_TOKEN", userData);
+        const refreshToken = utility.generateJWTToken("REFRESH_TOKEN", userData);
         await redisClient.SADD("refreshTokens", refreshToken);
         delete userExists.password;
         delete userExists._id;
@@ -96,7 +96,7 @@ app.post("/api/auth/token", async (req, res) => {
         if (error) {
           return res.sendStatus(403);
         }
-        const accessToken = generateJWTToken("ACCESS_TOKEN", {
+        const accessToken = utility.generateJWTToken("ACCESS_TOKEN", {
           username: user.username,
         });
         res.json({ accessToken: accessToken });
