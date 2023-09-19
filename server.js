@@ -23,6 +23,11 @@ const redisClient = redis.createClient({
   },
 });
 
+app.get('/api/auth/status', (req, res)=>{
+  res.status(200).send('ok');
+})
+
+
 app.get('/api/auth/users', utility.authenticateToken, async (req, res)=>{
   const offset = req.query.offset;
   const limit = req.query.limit;
