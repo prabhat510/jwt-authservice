@@ -13,6 +13,7 @@ const allowedOrigins = ['http://localhost:4200', 'https://readersnest.netlify.ap
 app.use(
   cors({
     origin: allowedOrigins,
+    credentials: true
   })
 );
 
