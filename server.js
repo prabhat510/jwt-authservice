@@ -8,6 +8,14 @@ const cors = require("cors");
 const app = express();
 const utility = require('./utility');
 
+const allowedOrigins = ['https://localhost:4200', 'https://readersnest.netlify.app/'];
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+  })
+);
+
 app.use(express.json());
 app.use(cors());
 app.use(express.urlencoded({ extended: true }));
