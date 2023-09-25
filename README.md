@@ -1,2 +1,2 @@
 # jwt-authservice
-- auth service for https://frontend--graceful-melomakarona-dc4415.netlify.app
+- auth service for https://readersnest.netlify.app/
