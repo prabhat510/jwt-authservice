@@ -8,19 +8,13 @@ const cors = require("cors");
 const app = express();
 const utility = require('./utility');
 
-const allowedOrigins = ['http://localhost:4200', 'https://readersnest.netlify.app/'];
 
 app.use(
   cors({
-    origin: allowedOrigins,
-    credentials: true
+    origin: "*"
   })
 );
-app.use((req,res,next)=>{
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  next();
-})
+
 
 app.use(express.json());
 app.use(cors());
