@@ -8,7 +8,7 @@ const cors = require("cors");
 const app = express();
 const utility = require('./utility');
 
-const allowedOrigins = ['https://localhost:4200', 'https://readersnest.netlify.app/'];
+const allowedOrigins = ['http://localhost:4200', 'https://readersnest.netlify.app/'];
 
 app.use(
   cors({
