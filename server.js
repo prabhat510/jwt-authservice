@@ -6,15 +6,13 @@ const redis = require("redis");
 const mongodb = require("mongodb");
 const cors = require("cors");
 const app = express();
-const utility = require('./utility');
-
+const utility = require("./utility");
 
 app.use(
   cors({
-    origin: "*"
+    origin: "*",
   })
 );
-
 
 app.use(express.json());
 app.use(cors());
@@ -28,30 +26,42 @@ const redisClient = redis.createClient({
   socket: {
     host: process.env.REDIS_HOST,
     port: process.env.REDIS_PORT,
+    timeout: 60000
   },
+  pingInterval: 1000
 });
 
-app.get('/api/auth/status', (req, res)=>{
-  res.status(200).send('ok');
-})
+redisClient.on("error", (error) => {
+  console.error("redisclient error", error);
+});
 
+app.get("/api/auth/status", (req, res) => {
+  res.status(200).send("ok");
+});
 
-app.get('/api/auth/users', utility.authenticateToken, async (req, res)=>{
+app.get("/api/auth/users", utility.authenticateToken, async (req, res) => {
   const offset = req.query.offset;
   const limit = req.query.limit;
   const mongodbClient = await mongoClient.connect(process.env.MONGODB_URI);
 
   try {
     const db = await mongodbClient.db("capstone");
-    const count = await db.collection("users").count();
-    const users = await db.collection("users").find().project({_id: 0, password: 0, __v: 0}).sort({_id: 1}).skip(parseInt(offset)).limit(parseInt(limit)).toArray();
-    res.json({users: users, totalCount: count});
+    const count = await db.collection("users").countDocuments();
+    const users = await db
+      .collection("users")
+      .find()
+      .project({ _id: 0, password: 0, __v: 0 })
+      .sort({ _id: 1 })
+      .skip(parseInt(offset))
+      .limit(parseInt(limit))
+      .toArray();
+    res.json({ users: users, totalCount: count });
   } catch (error) {
     console.log(error);
   } finally {
     mongodbClient.close();
   }
-})
+});
 
 app.post("/api/auth/login", async (req, res) => {
   const user = req.body;
@@ -64,16 +74,26 @@ app.post("/api/auth/login", async (req, res) => {
       .collection("users")
       .findOne({ username: user?.username });
     if (userExists) {
-      console.log('userExists', userExists);
-      const passwordMatched = await bcrypt.compare(user.password, userExists.password);
-      if(passwordMatched) {
+      console.log("userExists", userExists);
+      const passwordMatched = await bcrypt.compare(
+        user.password,
+        userExists.password
+      );
+      if (passwordMatched) {
         const userData = { username: user.username };
         const accessToken = utility.generateJWTToken("ACCESS_TOKEN", userData);
-        const refreshToken = utility.generateJWTToken("REFRESH_TOKEN", userData);
+        const refreshToken = utility.generateJWTToken(
+          "REFRESH_TOKEN",
+          userData
+        );
         await redisClient.SADD("refreshTokens", refreshToken);
         delete userExists.password;
         delete userExists._id;
-        return res.json({ accessToken: accessToken, refreshToken: refreshToken, user: userExists });
+        return res.json({
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+          user: userExists,
+        });
       } else {
         res.sendStatus(404);
       }
@@ -143,4 +163,3 @@ app.delete("/api/auth/logout", async (req, res) => {
 app.listen(port, () => {
   console.log("listening on port", port);
 });
-
