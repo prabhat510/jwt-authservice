@@ -7,7 +7,7 @@ function generateJWTToken(type, payload) {
   let token;
   if (type === "ACCESS_TOKEN") {
     token = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
-      expiresIn: accessTokenExpiry,
+      expiresIn: `${accessTokenExpiry}m`,
     });
   } else if (type === "REFRESH_TOKEN") {
     token = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET);
