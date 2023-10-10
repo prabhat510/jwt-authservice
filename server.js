@@ -30,8 +30,7 @@ const redisClient = redis.createClient({
     host: process.env.REDIS_HOST,
     port: process.env.REDIS_PORT,
     timeout: 60000
-  },
-  pingInterval: 1000
+  }
 });
 
 redisClient.on("error", (error) => {
@@ -103,7 +102,7 @@ app.post("/api/auth/login", async (req, res) => {
     console.log("error", error);
   } finally {
     // close connections
-    redisClient.quit();
+    redisClient.disconnect();
     mongodbClient.close();
   }
 });
@@ -136,12 +135,12 @@ app.post("/api/auth/token", async (req, res) => {
     console.log("error", error);
   } finally {
     // close connections
-    redisClient.quit();
+    redisClient.disconnect()
   }
 });
 
 app.delete("/api/auth/logout", async (req, res) => {
-  const refreshToken = req?.body?.token;
+  const refreshToken = req.body.token;
 
   try {
     await redisClient.connect();
@@ -157,7 +156,7 @@ app.delete("/api/auth/logout", async (req, res) => {
   } catch (error) {
     console.log("error", error);
   } finally {
-    redisClient.quit();
+    redisClient.disconnect();
   }
 });
 
