@@ -37,6 +37,9 @@ redisClient.on("error", (error) => {
   console.error("redisclient error", error);
 });
 
+redisClient.connect();
+
+
 app.get("/api/auth/status", (req, res) => {
   res.status(200).send("ok");
 });
@@ -68,7 +71,6 @@ app.post("/api/auth/login", async (req, res) => {
   if (!user) return res.status(400).send("user details are not present");
   const mongodbClient = await mongoClient.connect(process.env.MONGODB_URI);
   try {
-    await redisClient.connect();
     const db = await mongodbClient.db("capstone");
     const userExists = await db
       .collection("users")
@@ -102,7 +104,7 @@ app.post("/api/auth/login", async (req, res) => {
     console.log("error", error);
   } finally {
     // close connections
-    redisClient.disconnect();
+    // redisClient.quit();
     mongodbClient.close();
   }
 });
@@ -113,7 +115,7 @@ app.post("/api/auth/token", async (req, res) => {
     return res.status(401).send('refresh token not present');
   }
   try {
-    await redisClient.connect();
+  
     const isValidRefreshToken = await redisClient.SISMEMBER("refreshTokens", refreshToken);
     if (!isValidRefreshToken) return res.status(403).send('invalid refresh token');
     // using verify method so that we can decode the user info from the token and then use it to create the accessToken
@@ -135,7 +137,7 @@ app.post("/api/auth/token", async (req, res) => {
     console.log("error", error);
   } finally {
     // close connections
-    redisClient.disconnect()
+    // redisClient.quit()
   }
 });
 
@@ -143,7 +145,6 @@ app.delete("/api/auth/logout", async (req, res) => {
   const refreshToken = req.body.token;
 
   try {
-    await redisClient.connect();
     // TODO: for now we are only removing refresh_Token from redis (invalidating refresh_token) but the access_token might still
     // have the access even after user has logged out. Therefore, a different storage can be maintained where we can store the access_tokens
     // after user has logged out and everytime a request with access token is made, it can be checked against these invalid access tokens.
@@ -156,7 +157,7 @@ app.delete("/api/auth/logout", async (req, res) => {
   } catch (error) {
     console.log("error", error);
   } finally {
-    redisClient.disconnect();
+    // redisClient.quit();
   }
 });
 

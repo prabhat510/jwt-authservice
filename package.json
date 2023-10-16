@@ -1,7 +1,7 @@
 {
   "name": "authservice",
   "version": "1.0.0",
-  "description": "- auth service for https://frontend--graceful-melomakarona-dc4415.netlify.app",
+  "description": "- auth service for https://readersnest.netlify.app/",
   "main": "server.js",
   "scripts": {
     "devStart": "node server.js",
