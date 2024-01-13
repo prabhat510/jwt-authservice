@@ -50,9 +50,9 @@ app.get("/api/auth/users", utility.authenticateToken, async (req, res) => {
   const mongodbClient = await mongoClient.connect(process.env.MONGODB_URI);
 
   try {
-    const db = await mongodbClient.db("capstone");
-    const count = await db.collection("users").countDocuments();
-    const users = await db.collection("users").find()
+    const db = await mongodbClient.db(process.env.DB);
+    const count = await db.collection(process.env.COLLECTION).countDocuments();
+    const users = await db.collection(process.env.COLLECTION).find()
       .project({ _id: 0, password: 0, __v: 0 })
       .sort({ _id: 1 })
       .skip(parseInt(offset))
@@ -71,10 +71,8 @@ app.post("/api/auth/login", async (req, res) => {
   if (!user) return res.status(400).send("user details are not present");
   const mongodbClient = await mongoClient.connect(process.env.MONGODB_URI);
   try {
-    const db = await mongodbClient.db("capstone");
-    const userExists = await db
-      .collection("users")
-      .findOne({ username: user?.username });
+    const db = await mongodbClient.db(process.env.DB);
+    const userExists = await db.collection(process.env.COLLECTION).findOne({ username: user?.username });
     if (userExists) {
       console.log("userExists", userExists);
       const passwordMatched = await bcrypt.compare(
@@ -82,18 +80,16 @@ app.post("/api/auth/login", async (req, res) => {
         userExists.password
       );
       if (passwordMatched) {
-        const userData = { username: user.username };
+        const userData = {
+          name: userExists.name,
+          username: userExists.username,
+          email: userExists.email,
+          userId: userExists._id
+        };
         const accessToken = utility.generateJWTToken("ACCESS_TOKEN", userData);
-        const refreshToken = utility.generateJWTToken(
-          "REFRESH_TOKEN",
-          userData
-        );
+        const refreshToken = utility.generateJWTToken("REFRESH_TOKEN", userData);
         await redisClient.SADD("refreshTokens", refreshToken);
-        delete userExists.password;
-        delete userExists._id;
-        return res.json({ accessToken: accessToken, refreshToken: refreshToken, user: userExists,
-          expiresIn: dateFns.addMinutes(new Date(), accessTokenExpiry) // returns expiresIn in ISO format
-        });
+        return res.json({ accessToken: accessToken, refreshToken: refreshToken });
       } else {
         res.status(404).send("password is invalid");
       }

@@ -1,7 +1,6 @@
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
-const accessTokenExpiry = process.env.ACCESS_TOKEN_EXPIRY || 1; 
-const refreshTokenExpiry = process.env.REFRESH_TOKEN_EXPIRY || 5; 
+const accessTokenExpiry = process.env.ACCESS_TOKEN_EXPIRY || 10; 
 
 function generateJWTToken(type, payload) {
   let token;
@@ -12,9 +11,7 @@ function generateJWTToken(type, payload) {
   } else if (type === "REFRESH_TOKEN") {
     token = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET);
   } else if (type === "PASSWORD_TOKEN") {
-    token = jwt.sign(payload, process.env.PASSWORD_TOKEN_SECRET, {
-      expiresIn: refreshTokenExpiry
-    });
+    token = jwt.sign(payload, process.env.PASSWORD_TOKEN_SECRET);
   }
   return token;
 }
