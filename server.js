@@ -44,11 +44,12 @@ app.get("/api/auth/status", (req, res) => {
   res.status(200).send("ok");
 });
 
-app.get("/api/auth/users", utility.authenticateToken, async (req, res) => {
+app.get("/api/auth/users", async (req, res) => {
   const offset = req.query.offset;
   const limit = req.query.limit;
   const mongodbClient = await mongoClient.connect(process.env.MONGODB_URI);
-
+  console.log("db::", process.env.DB)
+  console.log("COLLECTION::", process.env.COLLECTION)
   try {
     const db = await mongodbClient.db(process.env.DB);
     const count = await db.collection(process.env.COLLECTION).countDocuments();
