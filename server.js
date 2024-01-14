@@ -50,6 +50,7 @@ app.get("/api/auth/users", async (req, res) => {
   const mongodbClient = await mongoClient.connect(process.env.MONGODB_URI);
   console.log("db::", process.env.DB)
   console.log("COLLECTION::", process.env.COLLECTION)
+  console.log("MONGODB_URI::", process.env.MONGODB_URI)
   try {
     const db = await mongodbClient.db(process.env.DB);
     const count = await db.collection(process.env.COLLECTION).countDocuments();
