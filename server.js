@@ -4,25 +4,21 @@ const jwt = require("jsonwebtoken");
 const dotenv = require("dotenv");
 const redis = require("redis");
 const mongodb = require("mongodb");
-const dateFns = require("date-fns");
 const cors = require("cors");
+const bodyParser = require('body-parser');
 const app = express();
 const utility = require("./utility");
 
-app.use(
-  cors({
-    origin: "*",
-  })
-);
-
+const allowedOrigins = [process.env.ORIGIN, 'https://go-swiftcart.netlify.app', 'https://readersnest.netlify.app/'];
 app.use(express.json());
-app.use(cors());
-app.use(express.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cors({ origin: allowedOrigins, credentials: true, exposedHeaders: ['Set-Cookie', 'Date', 'ETag']} ));
 dotenv.config();
+
 
 const port = process.env.PORT || 3000;
 // tokenExpiry should be in minutes
-const accessTokenExpiry = process.env.ACCESS_TOKEN_EXPIRY || 1; 
 const mongoClient = mongodb.MongoClient;
 const redisClient = redis.createClient({
   password: process.env.REDIS_PASSWORD,
@@ -44,7 +40,7 @@ app.get("/api/auth/status", (req, res) => {
   res.status(200).send("ok");
 });
 
-app.get("/api/auth/users", async (req, res) => {
+app.get("/api/auth/users", utility.authenticateToken, async (req, res) => {
   const offset = req.query.offset;
   const limit = req.query.limit;
   const mongodbClient = await mongoClient.connect(process.env.MONGODB_URI);
@@ -88,10 +84,13 @@ app.post("/api/auth/login", async (req, res) => {
           email: userExists.email,
           userId: userExists._id
         };
+
         const accessToken = utility.generateJWTToken("ACCESS_TOKEN", userData);
         const refreshToken = utility.generateJWTToken("REFRESH_TOKEN", userData);
         await redisClient.SADD("refreshTokens", refreshToken);
-        return res.json({ accessToken: accessToken, refreshToken: refreshToken });
+        res.cookie("token", accessToken, {maxAge: utility.getNextYearEpochTime()});
+        res.cookie("refresh_token", refreshToken, {maxAge: utility.getNextYearEpochTime()});
+        return res.send();
       } else {
         res.status(404).send("password is invalid");
       }
@@ -101,8 +100,6 @@ app.post("/api/auth/login", async (req, res) => {
   } catch (error) {
     console.log("error", error);
   } finally {
-    // close connections
-    // redisClient.quit();
     mongodbClient.close();
   }
 });
@@ -126,9 +123,11 @@ app.post("/api/auth/token", async (req, res) => {
         }
         const accessToken = utility.generateJWTToken("ACCESS_TOKEN", {username: user.username,});
         const newRefreshToken = utility.generateJWTToken("REFRESH_TOKEN", {username: user.username});
-         redisClient.SADD("refreshTokens", newRefreshToken);
-         redisClient.SREM("refreshTokens", refreshToken);
-        return res.json({ accessToken: accessToken, refreshToken: newRefreshToken, expiresIn: dateFns.addMinutes(new Date(), accessTokenExpiry) });
+        redisClient.SADD("refreshTokens", newRefreshToken);
+        redisClient.SREM("refreshTokens", refreshToken);
+        res.cookie("token", accessToken, {maxAge: utility.getNextYearEpochTime()});
+        res.cookie("refresh_token", refreshToken, {maxAge: utility.getNextYearEpochTime()});
+        return res.send();
       }
     );
   } catch (error) {

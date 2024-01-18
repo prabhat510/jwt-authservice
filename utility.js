@@ -35,4 +35,12 @@ function authenticateToken(req, res, next) {
   });
 }
 
-module.exports = { generateJWTToken, authenticateToken };
+function getNextYearEpochTime() {
+  const currentDate = new Date();
+  const nextYearDate = new Date(currentDate);
+  nextYearDate.setFullYear(currentDate.getFullYear() + 1);
+  const nextYearEpochTimeInMilliSeconds = nextYearDate.getTime();
+  return nextYearEpochTimeInMilliSeconds;
+}
+
+module.exports = { generateJWTToken, authenticateToken, getNextYearEpochTime };
