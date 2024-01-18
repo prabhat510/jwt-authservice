@@ -125,8 +125,8 @@ app.post("/api/auth/token", async (req, res) => {
         const newRefreshToken = utility.generateJWTToken("REFRESH_TOKEN", {username: user.username});
         redisClient.SADD("refreshTokens", newRefreshToken);
         redisClient.SREM("refreshTokens", refreshToken);
-        res.cookie("token", accessToken, {maxAge: utility.getNextYearEpochTime()});
-        res.cookie("refresh_token", refreshToken, {maxAge: utility.getNextYearEpochTime()});
+        res.cookie("token", accessToken, {maxAge: utility.getNextYearEpochTime(), sameSite: 'none', secure: true});
+        res.cookie("refresh_token", refreshToken, {maxAge: utility.getNextYearEpochTime(), sameSite: 'none', secure: true});
         return res.send();
       }
     );
