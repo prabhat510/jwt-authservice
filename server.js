@@ -13,7 +13,7 @@ const allowedOrigins = [process.env.ORIGIN, 'https://go-swiftcart.netlify.app', 
 app.use(express.json());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cors({ origin: allowedOrigins, credentials: true, exposedHeaders: ['Set-Cookie', 'Date', 'ETag']} ));
+app.use(cors({ origin: allowedOrigins, credentials: true} ));
 dotenv.config();
 
 
@@ -37,7 +37,7 @@ redisClient.connect();
 
 
 app.get("/api/auth/status", (req, res) => {
-  res.status(200).send("ok");
+  res.status(200).send("status is ok");
 });
 
 app.get("/api/auth/users", utility.authenticateToken, async (req, res) => {
