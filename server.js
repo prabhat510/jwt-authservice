@@ -88,9 +88,7 @@ app.post("/api/auth/login", async (req, res) => {
         const accessToken = utility.generateJWTToken("ACCESS_TOKEN", userData);
         const refreshToken = utility.generateJWTToken("REFRESH_TOKEN", userData);
         await redisClient.SADD("refreshTokens", refreshToken);
-        res.cookie("token", accessToken, {maxAge: utility.getNextYearEpochTime(), sameSite: 'none', secure: true, domain: 'go-swiftcart.netlify.app', httpOnly: true});
-        res.cookie("refresh_token", refreshToken, {maxAge: utility.getNextYearEpochTime(), sameSite: 'none', secure: true, domain: 'go-swiftcart.netlify.app', httpOnly: true});
-        return res.send();
+        return res.json({"token": accessToken, "refresh_token": refreshToken });
       } else {
         res.status(404).send("password is invalid");
       }
@@ -125,9 +123,7 @@ app.post("/api/auth/token", async (req, res) => {
         const newRefreshToken = utility.generateJWTToken("REFRESH_TOKEN", {username: user.username});
         redisClient.SADD("refreshTokens", newRefreshToken);
         redisClient.SREM("refreshTokens", refreshToken);
-        res.cookie("token", accessToken, {maxAge: utility.getNextYearEpochTime(), sameSite: 'none', secure: true, domain: 'go-swiftcart.netlify.app', httpOnly: true});
-        res.cookie("refresh_token", refreshToken, {maxAge: utility.getNextYearEpochTime(), sameSite: 'none', secure: true, domain: 'go-swiftcart.netlify.app', httpOnly: true});
-        return res.send();
+        return res.json({"token": accessToken, "refresh_token": refreshToken });
       }
     );
   } catch (error) {
