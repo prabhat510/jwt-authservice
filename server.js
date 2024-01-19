@@ -9,11 +9,11 @@ const bodyParser = require('body-parser');
 const app = express();
 const utility = require("./utility");
 
-const allowedOrigins = [process.env.ORIGIN, 'https://go-swiftcart.netlify.app', 'https://readersnest.netlify.app'];
+const allowedOrigins = [process.env.ORIGIN, 'https://go-swiftcart.netlify.app'];
 app.use(express.json());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cors({ origin: allowedOrigins, credentials: true} ));
+app.use(cors({origin: allowedOrigins}));
 dotenv.config();
 
 
@@ -40,7 +40,7 @@ app.get("/api/auth/status", (req, res) => {
   res.status(200).send("status is ok");
 });
 
-app.get("/api/auth/users", utility.authenticateToken, async (req, res) => {
+app.get("/api/auth/users", async (req, res) => {
   const offset = req.query.offset;
   const limit = req.query.limit;
   const mongodbClient = await mongoClient.connect(process.env.MONGODB_URI);
@@ -88,7 +88,7 @@ app.post("/api/auth/login", async (req, res) => {
         const accessToken = utility.generateJWTToken("ACCESS_TOKEN", userData);
         const refreshToken = utility.generateJWTToken("REFRESH_TOKEN", userData);
         await redisClient.SADD("refreshTokens", refreshToken);
-        return res.json({"token": accessToken, "refresh_token": refreshToken });
+        return res.json({accessToken: accessToken, refreshToken: refreshToken});
       } else {
         res.status(404).send("password is invalid");
       }
