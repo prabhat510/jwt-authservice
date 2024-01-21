@@ -13,7 +13,7 @@ const allowedOrigins = [process.env.ORIGIN, 'https://go-swiftcart.netlify.app'];
 app.use(express.json());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cors({origin: allowedOrigins}));
+app.use(cors({origin: "*"}));
 dotenv.config();
 
 
@@ -86,7 +86,7 @@ app.post("/api/auth/login", async (req, res) => {
         };
 
         const accessToken = utility.generateJWTToken("ACCESS_TOKEN", userData);
-        const refreshToken = utility.generateJWTToken("REFRESH_TOKEN", userData);
+        const refreshToken = utility.generateJWTToken("REFRESH_TOKEN", {username: user.username});
         await redisClient.SADD("refreshTokens", refreshToken);
         return res.json({accessToken: accessToken, refreshToken: refreshToken});
       } else {
@@ -103,34 +103,44 @@ app.post("/api/auth/login", async (req, res) => {
 });
 
 app.post("/api/auth/token", async (req, res) => {
+  console.log("auth token refresh call::", req.body);
   const refreshToken = req?.body?.token;
   if (refreshToken === null) {
-    return res.status(401).send('refresh token not present');
+    return res.status(401).json({message: 'refresh token not present'});
   }
   try {
   
     const isValidRefreshToken = await redisClient.SISMEMBER("refreshTokens", refreshToken);
-    if (!isValidRefreshToken) return res.status(403).send('invalid refresh token');
+    if (!isValidRefreshToken) return res.status(403).json({message: 'invalid refresh token'});
     // using verify method so that we can decode the user info from the token and then use it to create the accessToken
     jwt.verify(
       refreshToken,
       process.env.REFRESH_TOKEN_SECRET,
-       (error, user) => {
+       async (error, user) => {
         if (error) {
-          return res.status(403).send('error validating refresh token');
+          return res.status(403).json({message: 'error validating refresh token'});
         }
-        const accessToken = utility.generateJWTToken("ACCESS_TOKEN", {username: user.username,});
-        const newRefreshToken = utility.generateJWTToken("REFRESH_TOKEN", {username: user.username});
-        redisClient.SADD("refreshTokens", newRefreshToken);
-        redisClient.SREM("refreshTokens", refreshToken);
-        return res.json({"token": accessToken, "refresh_token": refreshToken });
+        const mongodbClient = await mongoClient.connect(process.env.MONGODB_URI);
+        const db = await mongodbClient.db(process.env.DB);
+        const userExists = await db.collection(process.env.COLLECTION).findOne({ username: user?.username });
+        if(userExists) {
+          const accessToken = utility.generateJWTToken("ACCESS_TOKEN",
+          { 
+           name: userExists.name,
+           username: userExists.username,
+           email: userExists.email,
+           userId: userExists._id
+         });
+         const newRefreshToken = utility.generateJWTToken("REFRESH_TOKEN", {username: user.username});
+         redisClient.SADD("refreshTokens", newRefreshToken);
+         redisClient.SREM("refreshTokens", refreshToken);
+         return res.json({accessToken: accessToken, refreshToken: refreshToken });
+        }
+       return res.sendStatus(404);
       }
     );
   } catch (error) {
     console.log("error", error);
-  } finally {
-    // close connections
-    // redisClient.quit()
   }
 });
 
@@ -143,14 +153,12 @@ app.delete("/api/auth/logout", async (req, res) => {
     // after user has logged out and everytime a request with access token is made, it can be checked against these invalid access tokens.
     if(refreshToken) {
       redisClient.SREM("refreshTokens", refreshToken);
-      return res.status(200).send("logged out successfully");
+      return res.status(200).json({message: "logged out successfully"});
     } else {
-      return res.status(404).send("refresh token not present");
+      return res.status(404).json({message: "refresh token not present"});
     }
   } catch (error) {
     console.log("error", error);
-  } finally {
-    // redisClient.quit();
   }
 });
 
