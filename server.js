@@ -82,7 +82,8 @@ app.post("/api/auth/login", async (req, res) => {
           name: userExists.name,
           username: userExists.username,
           email: userExists.email,
-          userId: userExists._id
+          userId: userExists._id,
+          isAdmin: false
         };
 
         const accessToken = utility.generateJWTToken("ACCESS_TOKEN", userData);
